@@ -17,7 +17,7 @@ type LocalVars struct {
 
 func GetEnvironmentVars() (LocalVars) {
 	localVars := LocalVars{}
-	EnvPath := "./local.json"
+	EnvPath := "./local.env.json"
 	// Get ENVIRONMENT VARS
 	local, err := ioutil.ReadFile(EnvPath)
 	if err != nil {
