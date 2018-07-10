@@ -9,26 +9,30 @@ import (
 	"github.com/kataras/iris/context"
 )
 
-func StartServer() {
-	fmt.Println("starting")
+type AListServer interface {
+	BuildServer()(server iris.Application)
+}
 
-	app := iris.New()
-	// load templates.
-	app.RegisterView(iris.HTML("./views", ".html"))
+func BuildServer() (server *iris.Application){
+		fmt.Println("starting")
 
-	app.Get("/alist-service", func(context context.Context) {
-		context.ServeFile("./workers/alist-service.worker.js", false)
-	})
-	// render the ./views/index.html.
-	app.Get("/", func(ctx iris.Context) {
-		ctx.View("index.html")
-	})
+		app := iris.New()
+		// load templates.
+		app.RegisterView(iris.HTML("./views", ".html"))
 
-	mvc.Configure(app.Party("/websocket"), configureMVC)
-	// Or mvc.New(app.Party(...)).Configure(configureMVC)
+		app.Get("/alist-service", func(context context.Context) {
+			context.ServeFile("./workers/alist-service.worker.js", false)
+		})
+		// render the ./views/index.html.
+		app.Get("/", func(ctx iris.Context) {
+			ctx.View("index.html")
+		})
 
-	// http://localhost:8080
-	app.Run(iris.Addr("localhost:80"))
+		mvc.Configure(app.Party("/websocket"), configureMVC)
+		// Or mvc.New(app.Party(...)).Configure(configureMVC)
+
+		// http://localhost:8080
+		return app
 }
 
 func configureMVC(m *mvc.Application) {
