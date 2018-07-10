@@ -1,11 +1,11 @@
 package main
 
 import (
-		"a-list/transcoder"
-	"fmt"
+			"fmt"
 	"github.com/kataras/iris"
 	"a-list/server"
-	)
+	"a-list/transcoder"
+)
 var shutdownServer bool
 
 func main() {
@@ -18,8 +18,7 @@ func main() {
 
 	// initialize transcoder channel
 
-	go transcoder.Transcode()
-
+	go transcoder.init()
 	// main thread ends with Server.Run
 	StartServer()
 

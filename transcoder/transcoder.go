@@ -3,6 +3,9 @@ package transcoder
 import (
 	"os"
 	"os/exec"
+	"github.com/kjk/betterguid"
+	"net/http"
+	"fmt"
 )
 
 type Transcoder interface {
@@ -13,6 +16,7 @@ type Transcoder interface {
 }
 
 type TranscodeJob struct {
+	id string
 	ready bool
 	done bool
 	sourceMeta SoundFileMeta
@@ -33,11 +37,13 @@ func buildFFMPEGCMD(sourceMeta SoundFileMeta) *exec.Cmd {
 }
 
 type TranscoderClient struct {
-	transcodes chan
+	Transcodes chan TranscodeJob
 }
 
-func BuildTranscodeClient() Transcoder {
+func BuildTranscodeClient(transcoderClient chan TranscoderClient) TranscoderClient {
 
+	client := make(chan Transcoder)
+	transcoderClient = client
 }
 
 
@@ -51,3 +57,38 @@ func TransStore() {
 func Transcode() {
 	//initializeFFMPEG()
 }
+
+//func (c *TranscoderClient) RunToMediaLibrary()(SoundFileMeta, err error) {
+//	todo...
+//}
+
+func (c *TranscoderClient) NewJob(_file *os.File, targetMime []string)(source SoundFileMeta) {
+	buffer := make([]byte, 512)
+	_, err := _file.Read(buffer)
+	if err != nil {
+		panic(err)
+	}
+
+	encodeing := http.DetectContentType(buffer)
+	fmt.Println(encodeing)
+	// make a uri
+	//uri := os.NewFile(file)
+	// setMeta
+	sourceMeta := SoundFileMeta{id: betterguid.New()}
+	// buildCMD
+	c.Transcodes <- TranscodeJob{
+		id: betterguid.New(),
+		ready: true,
+		done: false,
+		sourceMeta: sourceMeta,
+		targetMeta: nil,
+		ffmpegCMD: nil,
+	}
+	return SoundFileMeta{}
+}
+//func (c *TranscoderClient) RunJobs()(data byte, err error) {
+//
+//}
+//func (c *TranscoderClient) ExitChan() chan error {
+//
+//}
