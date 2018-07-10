@@ -1,5 +1,8 @@
 package main
 
-func main() {
+import "a-list/server"
 
+func main() {
+	server.StartServer()
 }
+

@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Music List</title>
+</head>
+<body>
+    <div>Welcome to A-List Music Manager (proto)</div>
+
+    <ul>
+        <h3>TODO</h3>
+        <li>File Input - magic number auth  - upload strategy</li>
+        <li>Media storage</li>
+        <li>List it</li>
+    </ul>
+
+<div id="online_visitors"></div>
+</body>
+<script src="/websocket/iris-ws.js"></script>
+<script type="text/javascript">
+
+    (function () {
+        var socket = new Ws("ws://localhost:8080/websocket");
+
+        socket.OnConnect(function(){
+            // update the rest of connected clients, including "myself" when "my" connection is 100% ready.
+            socket.Emit("visit");
+        });
+
+        socket.On("visit", function (newCount) {
+            console.log("visit websocket event with newCount of: ", newCount);
+
+            var text = "1 online visitor";
+            if (newCount > 1) {
+                text = newCount + " online visitors";
+            }
+            document.getElementById("online_visitors").innerHTML = text;
+        });
+
+        socket.OnDisconnect(function () {
+            document.getElementById("online_visitors").innerHTML = "you've been disconnected";
+        });
+    })();
+
+</script>
+<script>
+    console.log('Initializing UI, workers and cache');
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', async function () {
+            const serviceWorker = await navigator.serviceWorker
+                    .register('/alist-service', {
+                        foo: 'dataBar'
+                    })
+                    .catch(function (error) {
+                        console.log('Registration failed:', error);
+                    });
+
+            navigator.serviceWorker.ready.then(function () {
+                console.log("wtf");
+
+            });
+
+            navigator.serviceWorker.addEventListener('statechange', function(evt) {
+                console.log("state change called on sw", evt);
+            });
+        });
+    }
+</script>
+</html>
