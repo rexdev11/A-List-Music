@@ -7,20 +7,35 @@ import (
 	"sync/atomic"
 	"fmt"
 	"github.com/kataras/iris/context"
+	"a-list-music/utilities"
 )
 
-type AListServer interface {
-	BuildServer()(server iris.Application)
+var fileUploadedChan chan utilities.Action
+var Client = func() AListServerClient {
+	return AListServerClient{
+		FileUploaded: fileUploadedChan,
+	}
 }
 
-func BuildServer() (server *iris.Application){
-	fmt.Println("starting")
+type AListServer interface {
+	BuildServer() (server iris.Application)
+}
+
+type AListServerClient struct {
+	FileUploaded chan utilities.Action
+}
+
+func BuildServer() (server *iris.Application) {
+	fileUploadedChan = make(chan utilities.Action)
 
 	app := iris.New()
 
 	// load templates
-
 	app.RegisterView(iris.HTML("./views", ".html"))
+
+	app.Get("/", func(ctx iris.Context) {
+		ctx.View("index.html")
+	})
 
 	app.Get("/style-sheet", func(ctx context.Context) {
 		ctx.ServeFile("./views/main.style.css", false)
@@ -34,14 +49,11 @@ func BuildServer() (server *iris.Application){
 		ctx.View("admin.html")
 	})
 
-	app.Get("/", func(ctx iris.Context) {
-		ctx.View("index.html")
-	})
-
 	mvc.Configure(app.Party("/websocket"), configureMVC)
 	// Or
 	//mvc.New(app.Party(...)).Configure(configureMVC)
 	// http://localhost:8080
+
 	return app
 }
 
@@ -77,11 +89,25 @@ func (c *websocketController) onLeave(roomName string) {
 
 func (c *websocketController) update() {
 	newCount := increment()
+	c.Conn.Join("sample")
 	c.Conn.To(websocket.All).Emit("visit", newCount)
 }
 
 func (c *websocketController) Get( /* websocket.Connection could be lived here as well, it doesn't matter */ ) {
 	c.Conn.OnLeave(c.onLeave)
 	c.Conn.On("visit", c.update)
+	c.fileSockets()
 	c.Conn.Wait()
+}
+
+func(c *websocketController) fileSockets() {
+	const RoomName = "file_upload"
+
+	if c.Conn.Join(RoomName); c.Conn.IsJoined(RoomName) {
+		var onUpload = func(data []byte) {
+			fmt.Println("file received", data)
+		}
+		c.Conn.On("upload", onUpload)
+	}
+	c.Conn.Emit("FileUpload::Done", nil)
 }
