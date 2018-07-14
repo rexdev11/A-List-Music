@@ -7,9 +7,11 @@ import (
 	"a-list-music/store"
 	"a-list-music/transcoder"
 	"a-list-music/utilities"
+	"net/url"
+	"github.com/kataras/iris/core/host"
 )
 
-const ServerHost = string("localhost:8888")
+const ServerHost = string("localhost:10911")
 
 func main() {
 
@@ -19,13 +21,26 @@ func main() {
 
 func StartServer() {
 	fmt.Println("starting Server")
-		serv := server.BuildServer()
+		serv := server.BuildServer(server.Data{ ServerHostPort: ServerHost })
 		serv.Logger().Info("on connection")
 		fmt.Println("starting server on ", ServerHost)
-		err := serv.Run(iris.TLS(ServerHost, "./alist.cert", "./alist.key"))
-		if err != nil {
-			utilities.ErrorHandler(err)
-		}
+		target, _ := url.Parse("localhost:*")
+		go host.NewProxy(ServerHost, target).ListenAndServe()
+
+	err := serv.Run(iris.TLS(ServerHost, "./alist.cert", "./alist.key"), iris.WithConfiguration(iris.Configuration{ // default configuration:
+		DisableStartupLog:                 false,
+		DisableInterruptHandler:           false,
+		DisablePathCorrection:             false,
+		EnablePathEscape:                  false,
+		FireMethodNotAllowed:              false,
+		DisableBodyConsumptionOnUnmarshal: false,
+		DisableAutoFireStatusCode:         false,
+		TimeFormat:                        "Mon, 02 Jan 2006 15:04:05 GMT",
+		Charset:                           "UTF-8",
+	}))
+	if err != nil {
+		utilities.ErrorHandler(err)
+	}
 }
 
 // This will coordinate the different modules into routines.

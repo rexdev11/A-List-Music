@@ -44,7 +44,7 @@
 
 <script src="/websocket/iris-ws.js"></script>
 <script type="text/javascript">
-    let socket = new Ws("ws://localhost:9004/websocket");
+    let socket = new Ws("ws://localhost:10911/websocket");
     let currentFiles = {};
     let fileInputBusy = false;
 
@@ -54,7 +54,7 @@
             // update the rest of connected clients, including "myself" when "my" connection is 100% ready.
             socket.Emit("visit");
         });
-
+        socket.join("sample");
         socket.On("visit", function (newCount) {
             console.log("visit websocket event with newCount of: ", newCount);
 

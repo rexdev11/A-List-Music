@@ -69,8 +69,12 @@
 
 <script src="/websocket/iris-ws.js"></script>
 <script type="text/javascript">
+    let wsPort = localStorage.getItem("alistWS");
+    if (!wsPort) {
+        wsPort = localStorage.setItem("alistWS", 10911)
+    }
 
-    const socket = new Ws("ws://localhost:8888/websocket");
+    const socket = new Ws(`ws://localhost:10911/websocket`);
     let fileInputBusy = true;
     let currentFiles = {};
 
@@ -133,6 +137,7 @@
 
     (function () {
         socket.OnConnect(function() {
+            socket.join("sample");
             // update the rest of connected clients, including "myself" when "my" connection is 100% ready.
             socket.Emit("visit");
         });

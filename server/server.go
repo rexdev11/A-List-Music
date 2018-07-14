@@ -9,6 +9,8 @@ import (
 	"github.com/kataras/iris/context"
 	"a-list-music/utilities"
 	"net/http"
+		"html/template"
+			"bytes"
 )
 
 var fileUploadedChan chan utilities.Action
@@ -26,13 +28,25 @@ type AListServerClient struct {
 	FileUploaded chan utilities.Action
 }
 
-func BuildServer() (server *iris.Application) {
-	fileUploadedChan = make(chan utilities.Action)
+type Data struct {
+	ServerHostPort string
+}
+
+func BuildServer(data Data) (server *iris.Application) {
 	app := iris.New()
+
 	app.RegisterView(iris.HTML("./views", ".html"))
 
 	app.Get("/", func(ctx iris.Context) {
-		ctx.View("index.html")
+		buf := bytes.Buffer{}
+		tmplt := template.New("index")
+		tmpltP := template.Must(tmplt.ParseFiles("./view/index.html"))
+		err := tmpltP.Execute(&buf, Data{})
+		utilities.ErrorHandler(err)
+		templateS := buf.String()
+
+		//rwriter := http.ResponseWriter(template)
+		ctx.HTML(templateS)
 	})
 
 	app.Get("/style-sheet", func(ctx context.Context) {
