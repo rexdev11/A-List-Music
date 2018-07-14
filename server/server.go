@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"github.com/kataras/iris/context"
 	"a-list-music/utilities"
+	"net/http"
 )
 
 var fileUploadedChan chan utilities.Action
@@ -27,10 +28,7 @@ type AListServerClient struct {
 
 func BuildServer() (server *iris.Application) {
 	fileUploadedChan = make(chan utilities.Action)
-
 	app := iris.New()
-
-	// load templates
 	app.RegisterView(iris.HTML("./views", ".html"))
 
 	app.Get("/", func(ctx iris.Context) {
@@ -50,15 +48,23 @@ func BuildServer() (server *iris.Application) {
 	})
 
 	mvc.Configure(app.Party("/websocket"), configureMVC)
-	// Or
-	//mvc.New(app.Party(...)).Configure(configureMVC)
-	// http://localhost:8080
 
 	return app
 }
 
 func configureMVC(m *mvc.Application) {
-	ws := websocket.New(websocket.Config{})
+	ws := websocket.New(websocket.Config{
+		CheckOrigin: func(r *http.Request) bool {
+			fmt.Println(r)
+			return true
+		},
+		IDGenerator: func(ctx context.Context) string {
+			var count= int(0)
+			var name= "ClientID" + string(count+1)
+			fmt.Println(name)
+			return name
+		},
+	})
 	// http://localhost:8080/websocket/iris-ws.js
 	m.Router.Any("/iris-ws.js", websocket.ClientHandler())
 

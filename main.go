@@ -6,29 +6,32 @@ import (
 	"github.com/kataras/iris"
 	"a-list-music/store"
 	"a-list-music/transcoder"
+	"a-list-music/utilities"
 )
 
-const ServerHost = string("localhost:9033")
+const ServerHost = string("localhost:8888")
 
 func main() {
-	var st = string("calling AListTranscoder")
-	fmt.Println(st)
+
 	StartServer()
+	Nexus()
 }
 
 func StartServer() {
 	fmt.Println("starting Server")
-	serv := server.BuildServer()
-	serv.Run(iris.Addr(ServerHost))
-	Nexus()
+		serv := server.BuildServer()
+		serv.Logger().Info("on connection")
+		fmt.Println("starting server on ", ServerHost)
+		err := serv.Run(iris.TLS(ServerHost, "./alist.cert", "./alist.key"))
+		if err != nil {
+			utilities.ErrorHandler(err)
+		}
 }
 
 // This will coordinate the different modules into routines.
 func Nexus() {
-
 	for job := range store.Client().Jobs {
 		fmt.Println(job)
-
 	}
 
 	for file := range server.Client().FileUploaded {
