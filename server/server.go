@@ -9,8 +9,8 @@ import (
 	"github.com/kataras/iris/context"
 	"a-list-music/utilities"
 	"net/http"
-		"html/template"
-			"bytes"
+	"html/template"
+	"encoding/json"
 )
 
 var fileUploadedChan chan utilities.Action
@@ -28,25 +28,45 @@ type AListServerClient struct {
 	FileUploaded chan utilities.Action
 }
 
-type Data struct {
-	ServerHostPort string
+type HostPaths struct {
+	Name     string
+	Path     string
+	Host     string
+	Protocol string
+	URI      string
+	Port     int
+}
+type HostingInfo struct {
+	Paths HostPaths
 }
 
-func BuildServer(data Data) (server *iris.Application) {
-	app := iris.New()
+type ServerOptions struct {
+	HostingData HostingInfo
+	StartUpUUID string
+}
 
+func BuildServer(options ServerOptions) (server *iris.Application) {
+	app := iris.Default()
 	app.RegisterView(iris.HTML("./views", ".html"))
-
 	app.Get("/", func(ctx iris.Context) {
-		buf := bytes.Buffer{}
-		tmplt := template.New("index")
-		tmpltP := template.Must(tmplt.ParseFiles("./view/index.html"))
-		err := tmpltP.Execute(&buf, Data{})
-		utilities.ErrorHandler(err)
-		templateS := buf.String()
+		var body string
 
-		//rwriter := http.ResponseWriter(template)
-		ctx.HTML(templateS)
+		ctx.ResponseWriter()
+		ctx.ResetResponseWriter(ctx.ResponseWriter())
+
+		// options to JSON
+		jsonData, err := json.Marshal(options)
+		utilities.ErrorHandler(err)
+
+		// Process Template
+		tmplt, err := template.ParseFiles("./views/index.html")
+
+		// set JSON
+		err = tmplt.Execute(ctx.ResponseWriter(), template.HTML(jsonData))
+		utilities.ErrorHandler(err)
+
+		ctx.WriteString(body)
+		ctx.ViewLayout(body)
 	})
 
 	app.Get("/style-sheet", func(ctx context.Context) {
@@ -89,6 +109,7 @@ func configureMVC(m *mvc.Application) {
 }
 
 var visits uint64
+var roomPrefix string
 
 func increment() uint64 {
 	return atomic.AddUint64(&visits, 1)
@@ -109,25 +130,27 @@ func (c *websocketController) onLeave(roomName string) {
 
 func (c *websocketController) update() {
 	newCount := increment()
-	c.Conn.Join("sample")
 	c.Conn.To(websocket.All).Emit("visit", newCount)
 }
 
-func (c *websocketController) Get( /* websocket.Connection could be lived here as well, it doesn't matter */ ) {
+func (c *websocketController) Get( startUUID string /* websocket.Connection could be lived here as well, it doesn't matter */ ) {
+	roomPrefix = startUUID
+	c.Conn.Join(roomPrefix + ":Main")
 	c.Conn.OnLeave(c.onLeave)
 	c.Conn.On("visit", c.update)
-	c.fileSockets()
+	c.fileSockets(roomPrefix)
 	c.Conn.Wait()
 }
 
-func(c *websocketController) fileSockets() {
-	const RoomName = "file_upload"
-
-	if c.Conn.Join(RoomName); c.Conn.IsJoined(RoomName) {
+func(c *websocketController) fileSockets(roomPrefix string) {
+	var RoomName = roomPrefix + "file_upload"
+	c.Conn.Join(RoomName)
+	if c.Conn.IsJoined(RoomName) {
 		var onUpload = func(data []byte) {
 			fmt.Println("file received", data)
 		}
 		c.Conn.On("upload", onUpload)
 	}
+
 	c.Conn.Emit("FileUpload::Done", nil)
 }

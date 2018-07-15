@@ -3,41 +3,76 @@ package main
 import (
 	"fmt"
 	"a-list-music/server"
-	"github.com/kataras/iris"
 	"a-list-music/store"
 	"a-list-music/transcoder"
-	"a-list-music/utilities"
 	"net/url"
 	"github.com/kataras/iris/core/host"
+	"github.com/kataras/iris"
+	"a-list-music/utilities"
+	"math/rand"
+	"strconv"
 )
 
-const ServerHost = string("localhost:10911")
+const ServerHost = string("localhost:14121")
+
+type MainOptions struct {
+	setUUID string
+}
 
 func main() {
+	startupUUIDNum := rand.Float64()
+	startupUUID := strconv.FormatFloat(startupUUIDNum, 'f', 6, 64)
 
-	StartServer()
+	options := MainOptions{
+		setUUID: startupUUID,
+	}
+
+	StartServer(options)
 	Nexus()
 }
 
-func StartServer() {
-	fmt.Println("starting Server")
-		serv := server.BuildServer(server.Data{ ServerHostPort: ServerHost })
-		serv.Logger().Info("on connection")
-		fmt.Println("starting server on ", ServerHost)
-		target, _ := url.Parse("localhost:*")
-		go host.NewProxy(ServerHost, target).ListenAndServe()
+func getHostData() server.HostingInfo {
+	hostPaths := server.HostingInfo{
+		Paths: server.HostPaths{
+			Name:     "MainServer",
+			Path:     "localhost:12121",
+			Host:     "localhost",
+			Protocol: "https",
+			URI:      "https://localhost:12121",
+			Port:     134545,
+		},
+	}
+	return hostPaths
+}
 
-	err := serv.Run(iris.TLS(ServerHost, "./alist.cert", "./alist.key"), iris.WithConfiguration(iris.Configuration{ // default configuration:
-		DisableStartupLog:                 false,
-		DisableInterruptHandler:           false,
-		DisablePathCorrection:             false,
-		EnablePathEscape:                  false,
-		FireMethodNotAllowed:              false,
-		DisableBodyConsumptionOnUnmarshal: false,
-		DisableAutoFireStatusCode:         false,
-		TimeFormat:                        "Mon, 02 Jan 2006 15:04:05 GMT",
-		Charset:                           "UTF-8",
-	}))
+func StartServer(options MainOptions) {
+	fmt.Println("starting Server")
+	serverOptions := server.ServerOptions{
+		HostingData: getHostData(),
+		StartUpUUID: options.setUUID,
+	}
+	serv := server.BuildServer(serverOptions)
+	serv.Logger().Info("on connection")
+	fmt.Println("starting server on ", ServerHost)
+	target, _ := url.Parse("localhost:433")
+
+	go host.NewProxy(ServerHost, target).ListenAndServe()
+		err := serv.Run(iris.TLS(
+			ServerHost,
+			"./alist.cert",
+			"./alist.key",
+			), iris.WithConfiguration(
+				iris.Configuration{ // default configuration:
+				DisableStartupLog:                 false,
+				DisableInterruptHandler:           false,
+				DisablePathCorrection:             false,
+				EnablePathEscape:                  false,
+				FireMethodNotAllowed:              false,
+				DisableBodyConsumptionOnUnmarshal: false,
+				DisableAutoFireStatusCode:         false,
+				TimeFormat:                        "Mon, 02 Jan 2006 15:04:05 GMT",
+				Charset:                           "UTF-8",
+			}))
 	if err != nil {
 		utilities.ErrorHandler(err)
 	}

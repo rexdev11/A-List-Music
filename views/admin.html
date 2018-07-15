@@ -7,7 +7,7 @@
     <link rel="stylesheet" href="/style-sheet">
 </head>
 
-<body>
+<body data-in="{{ . }}">
     <div class="container-flex" id="Admin">
         <div class="row">
             <h6>A-List Administration Panel</h6>
@@ -69,17 +69,14 @@
 
 <script src="/websocket/iris-ws.js"></script>
 <script type="text/javascript">
-    let wsPort = localStorage.getItem("alistWS");
-    if (!wsPort) {
-        wsPort = localStorage.setItem("alistWS", 10911)
-    }
-
-    const socket = new Ws(`ws://localhost:10911/websocket`);
     let fileInputBusy = true;
     let currentFiles = {};
-
     const inputLabelRef = document.getElementById("FileInputLabel");
     const inputRef = document.getElementById("inputGroupFile01");
+    const DATA_IN = document.body.dataset.in;
+
+    const socket = new Ws(`ws://${DATA_IN.Paths.Path}/websocket`);
+    socket.join(DATA_IN.StartUpUUID + ":Main");
 
     function onFileSelected() {
         if (!inputRef && !inputRef.files) {
@@ -117,8 +114,8 @@
         });
     }
 
-    function onSubmit(evt) {
-        evt.preventDefault();
+    function onSubmit() {
+        Event.preventDefault();
         const RoomName = "file_upload";
 
         if (fileInputBusy) {
@@ -155,24 +152,5 @@
         });
 
     })();
-
-    function templates() {
-        return {
-            trackItem(props) {
-                return `
-                    <div class="track-item">
-                        <div class="tab">
-
-                        </div>
-                        <div class="info-top">
-
-                        </div>
-                        <div class="info-bottom>
-                        </div>
-                    </div>
-                `;
-            }
-        }
-    }
-</script>
+    </script>
 </html>

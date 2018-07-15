@@ -32,6 +32,7 @@ type AListTranscoder interface {
 	// New Jobs set the source file...
 	NewJob(file *os.File, targetMime []string)
 
+	//
 	ExitChan() chan error
 }
 
@@ -100,6 +101,7 @@ func (c *TranscodeClient) MakeTranscodeJob(_file *os.File, targetEncode ...strin
 
 	for {
 		n, err := _file.Read(buffer)
+
 		if err != nil && err != io.EOF {
 			c.exitChan <- err
 		}
@@ -130,10 +132,8 @@ func (c *TranscodeClient) MakeTranscodeJob(_file *os.File, targetEncode ...strin
 		fmt.Println("New Job Success?", job)
 		payload := []byte(fmt.Sprintf("%v", responseObj))
 		action := utilities.Action{Type: "transcode", Payload: []byte(fmt.Sprintf("%v", payload))}
-
 		c.Jobs <- action
 	}
-
 	fmt.Println("Closing")
 }
 
@@ -156,9 +156,9 @@ func buildFFMPEGCMD(sourceMeta SoundFileMeta, targetEncode string) *exec.Cmd {
 
 	switch strings.ToLower(targetEncode) {
 
-	// convert any video/audio to mp3 audio
-	case "mp3":
-		{
+		// convert any video/audio to mp3 audio
+		case "mp3":
+			{
 			return exec.Command(
 				FFMPEGPath,
 				"-i",
@@ -178,7 +178,7 @@ func buildFFMPEGCMD(sourceMeta SoundFileMeta, targetEncode string) *exec.Cmd {
 		}
 		//case "flac":
 		//case "wav":
-	default:
+		default:
 	}
 	return nil
 }
@@ -193,7 +193,6 @@ func (c *TranscodeClient)ProcessJobs() {
 		payload := action.Payload
 		bReader := bytes.NewReader(buffer)
 		n, err := bReader.Read(payload)
-
 		_file, err := os.Create("temp")
 
 		for {
