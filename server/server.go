@@ -11,9 +11,12 @@ import (
 	"net/http"
 	"html/template"
 	"encoding/json"
+	"path"
 )
 
+var MainServerRoom string
 var fileUploadedChan chan utilities.Action
+var consoleCh chan string
 var Client = func() AListServerClient {
 	return AListServerClient{
 		FileUploaded: fileUploadedChan,
@@ -42,20 +45,34 @@ type HostingInfo struct {
 
 type ServerOptions struct {
 	HostingData HostingInfo
-	StartUpUUID string
+	ServerRoomName string
+	ConsoleCh      chan string
 }
 
-func BuildServer(options ServerOptions) (server *iris.Application) {
-	app := iris.Default()
-	app.RegisterView(iris.HTML("./views", ".html"))
-	app.Get("/", func(ctx iris.Context) {
-		var body string
+type SiteData struct {
+	HostingData HostingInfo
+	ServerRoomName string
+}
 
+var body string
+
+func BuildServer(options ServerOptions) (server *iris.Application) {
+	consoleCh = options.ConsoleCh
+	app := iris.New()
+
+	MainServerRoom = options.ServerRoomName + ":Main"
+
+	app.RegisterView(iris.HTML("./views", ".html"))
+
+	app.Get("/", func(ctx iris.Context) {
+
+		data := SiteData{options.HostingData, options.ServerRoomName}
 		ctx.ResponseWriter()
 		ctx.ResetResponseWriter(ctx.ResponseWriter())
 
 		// options to JSON
-		jsonData, err := json.Marshal(options)
+		jsonData, err := json.Marshal(data)
+
 		utilities.ErrorHandler(err)
 
 		// Process Template
@@ -78,8 +95,35 @@ func BuildServer(options ServerOptions) (server *iris.Application) {
 	})
 
 	app.Get("/admin", func(ctx context.Context) {
-		ctx.View("admin.html")
+		res := ctx.ResponseWriter()
+		origin := res.Header().Get("origin")
+		consoleCh <- origin
+
+		res.Push(origin, nil )
+
+		data := SiteData{options.HostingData, options.ServerRoomName}
+		ctx.ResponseWriter()
+		ctx.ResetResponseWriter(ctx.ResponseWriter())
+
+		// options to JSON
+		jsonData, err := json.Marshal(data)
+
+		utilities.ErrorHandler(err)
+
+		// Process Template
+		tmplt, err := template.ParseFiles("./views/admin.html")
+
+		// set JSON
+		err = tmplt.Execute(ctx.ResponseWriter(), template.HTML(jsonData))
+		utilities.ErrorHandler(err)
+
+		ctx.WriteString(body)
+		ctx.ViewLayout(body)
 	})
+
+	options.ConsoleCh <- "Sockets Initializing"
+
+	app.StaticWeb("/js/", path.Join(utilities.CWD(), "/web-_src/js/") )
 
 	mvc.Configure(app.Party("/websocket"), configureMVC)
 
@@ -89,15 +133,19 @@ func BuildServer(options ServerOptions) (server *iris.Application) {
 func configureMVC(m *mvc.Application) {
 	ws := websocket.New(websocket.Config{
 		CheckOrigin: func(r *http.Request) bool {
-			fmt.Println(r)
+			consoleCh <- "Checking ORIGIN"
 			return true
 		},
 		IDGenerator: func(ctx context.Context) string {
-			var count= int(0)
+			var count int
 			var name= "ClientID" + string(count+1)
-			fmt.Println(name)
+			consoleCh <- "Client Name"
+			consoleCh <- name
+			consoleCh <- ctx.String()
 			return name
 		},
+		ReadBufferSize:  1024,
+		WriteBufferSize: 1024,
 	})
 	// http://localhost:8080/websocket/iris-ws.js
 	m.Router.Any("/iris-ws.js", websocket.ClientHandler())
@@ -106,6 +154,7 @@ func configureMVC(m *mvc.Application) {
 	// to the controller(s) served by the `m.Handle`.
 	m.Register(ws.Upgrade)
 	m.Handle(new(websocketController))
+	//ws.Join(MainServerRoom)
 }
 
 var visits uint64
@@ -134,15 +183,11 @@ func (c *websocketController) update() {
 }
 
 func (c *websocketController) Get( startUUID string /* websocket.Connection could be lived here as well, it doesn't matter */ ) {
-	roomPrefix = startUUID
-	c.Conn.Join(roomPrefix + ":Main")
 	c.Conn.OnLeave(c.onLeave)
 	c.Conn.On("visit", c.update)
-	c.fileSockets(roomPrefix)
-	c.Conn.Wait()
-}
+	//c.Conn.Wait()
 
-func(c *websocketController) fileSockets(roomPrefix string) {
+	fmt.Println("Sockets Waiting")
 	var RoomName = roomPrefix + "file_upload"
 	c.Conn.Join(RoomName)
 	if c.Conn.IsJoined(RoomName) {
@@ -153,4 +198,5 @@ func(c *websocketController) fileSockets(roomPrefix string) {
 	}
 
 	c.Conn.Emit("FileUpload::Done", nil)
+	c.Conn.Wait()
 }

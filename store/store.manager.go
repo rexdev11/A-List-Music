@@ -12,6 +12,7 @@ import (
 )
 
 var JobsChan chan utilities.Action
+
 var Client = func() StoreClient {
 	return StoreClient{
 		JobsChan,
@@ -31,11 +32,20 @@ type ManifestOptions struct {
 	update 	[]ManifestEntry
 }
 
+type Geos struct {
+	lat float32
+	lon float32
+}
+
 type ManifestEntry struct {
-	Id       string
-	URI      string
-	Encoding string
-	Size     int
+	Id       	string
+	URI      	string
+	Encoding 	string
+	Size     	int
+	Name 		string
+	Artist		string
+	Location 	Geos
+	Duration	time.Duration
 }
 
 func withManifest(options ManifestOptions) {

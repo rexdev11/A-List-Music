@@ -197,7 +197,6 @@ func (c *TranscodeClient)ProcessJobs() {
 
 		for {
 			_file.Write(payload[:n])
-
 		}
 		fmt.Println(_file, n)
 

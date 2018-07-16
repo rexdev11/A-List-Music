@@ -6,7 +6,7 @@
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.1/css/bootstrap.min.css" integrity="sha384-WskhaSGFgHYWDcbwN70/dfYBj47jz9qbsMId/iRN3ewGhXQFZCSftd1LZCfmhktB" crossorigin="anonymous">
     <link rel="stylesheet" href="/style-sheet">
 </head>
-<body>
+<body data-go-in="{{ . }}">
     <div id="MusicBoard">
         <div class="music-board-header">
             <h1>Title of Page</h1>
@@ -50,65 +50,8 @@
 </body>
 
 <script src="/websocket/iris-ws.js"></script>
-<script type="text/javascript">
-    let socket = new Ws(`ws://${dataIn.HostingData.Path}/websocket`);
-    let currentFiles = {};
-    let fileInputBusy = false;
-
-    const dataStoreRef = document.getElementById("ProcessStore");
-    const dataIn = JSON.parse(dataStoreRef.dataset.store);
-
-
-    (function () {
-        socket.join(dataIn.StartUpUUID + ':Main');
-        socket.OnConnect(function() {
-            socket.Emit("visit");
-        });
-        socket.On("visit", function (newCount) {
-            console.log("visit websocket event with newCount of: ", newCount);
-            var text = "1 online visitor";
-
-            if (newCount > 1) {
-                text = newCount + " online visitors";
-            }
-
-            document.getElementById("online_visitors").innerHTML = text;
-        });
-
-        socket.OnDisconnect(function () {
-            document.getElementById("online_visitors").innerHTML = "you've been disconnected";
-        });
-    })();
-
-    console.log('Initializing UI, workers and cache');
-    if ('serviceWorker' in navigator) {
-        window.addEventListener('load', async function () {
-            // todo test for initial and installed
-
-            let serviceWorker = navigator.serviceWorker;
-
-            const registration = await navigator.serviceWorker
-                .register('/alist-service', { foo: 'dataBar' })
-                .catch( function (error) {
-                    console.log('Registration failed:', error);
-                });
-
-            navigator.serviceWorker.ready.then(function (evt) {
-                console.log("wtf", evt);
-            });
-
-            registration.onstatechange = function (evt) {
-                if (evt === "active") {
-                    serviceWorker = registration.active;
-                }
-                if (evt === "waiting") {
-                    serviceWorker = registration.waiting;
-                }
-                if (evt === "installing") {
-                    serviceWorker = registration.installing;
-                }
-            }
-        });
-    }
+<script src="/js/index.js" ></script>
+<script src="/js/wsocket.js">
+    runIndexSocket()
 </script>
 </html>
