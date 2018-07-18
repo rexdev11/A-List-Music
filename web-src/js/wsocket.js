@@ -1,49 +1,53 @@
-const dataStoreRef = document.getElementsByTagName('body')[0];
-const dataIn = JSON.parse(dataStoreRef.dataset.store);
+text = "1 online visitor";
 
-console.log(document.location.protocol);
+function setWS() {
+    if (document.location && document.location.protocol) {
 
-// Set up socket URL
-const scheme = document.location.protocol
-    === "https:"
-    ? "wss"
-    : "ws";
+        // Set up socket URL
+        const scheme = document.location.protocol
+            === "https:"
+                ? "wss"
+                : "ws"
+    } else {
+        const port = document.location.port
+            ? (":" + document.location.port)
+            : ""
+    }
 
-const port = document.location.port
-    ? (":" + document.location.port)
-    : "";
-
-const wsURL = scheme + "://" + dataIn.Paths.Host + port + "/websocket";
-
-const socket = new Ws(wsURL);
-
+    const wsURL = scheme + "://" + dataIn.Paths.Host + port + "/websocket";
+        console.log("wsURL", wsURL);
+    return wsURL;
+}
 
 async function runAdminSocket() {
+        const socket = new Ws(wsURL);
+        const ServerRoom = DATA_IN.ServerRoomName + ':Main';
 
-    const ServerRoom = DATA_IN.ServerRoomName + ':Main';
-    socket.OnConnect(function() {
-        socket.Join(ServerRoom);
-        // update the rest of connected clients, including "myself" when "my" connection is 100% ready.
-        socket.Emit("visit", {
+        socket.OnConnect( function() {
+            socket.Join(ServerRoom);
+
+            // update the rest of connected clients, including "myself" when "my" connection is 100% ready.
+            socket.Emit("visit", {
+
+            });
+        });
+
+        socket.On("visit", function (newCount) {
+            console.log("visit websocket event with newCount of: ", newCount);
+            var text = "1 online visitor";
+
+            if (newCount > 1) {
+                text = newCount + " online visitors";
+            }
+
+            document.getElementById("online_visitors").innerHTML = text;
+        });
+
+        socket.OnDisconnect(function () {
 
         });
-    });
+    }
 
-    socket.On("visit", function (newCount) {
-        console.log("visit websocket event with newCount of: ", newCount);
-        var text = "1 online visitor";
-
-        if (newCount > 1) {
-            text = newCount + " online visitors";
-        }
-
-        document.getElementById("online_visitors").innerHTML = text;
-    });
-
-    socket.OnDisconnect(function () {
-        document.getElementById("online_visitors").innerHTML = "you've been disconnected";
-    });
-}
 
 async function runIndexSocket() {
     console.log('Websocket', Ws);
@@ -55,8 +59,6 @@ async function runIndexSocket() {
     });
 
     socket.On("visit", function (newCount) {
-        console.log("visit websocket event with newCount of: ", newCount);
-        var text = "1 online visitor";
 
         if (newCount > 1) {
             text = newCount + " online visitors";
@@ -70,8 +72,10 @@ async function runIndexSocket() {
     });
 
     console.log('Initializing UI, workers and cache');
+
     if ('serviceWorker' in navigator) {
-        window.addEventListener('load', async function () {
+
+        window.addEventListener('/load', async function () {
             // todo test for initial and installed
 
             let serviceWorker = navigator.serviceWorker;
@@ -79,26 +83,27 @@ async function runIndexSocket() {
             const registration = await navigator.serviceWorker
                 .register('/alist-service', {
                     foo: 'dataBar'
-                })
-                .catch(function (error) {
+                }).catch(function (error) {
                     console.log('Registration failed:', error);
                 });
 
-            navigator.serviceWorker.ready.then(function (evt) {
-                console.log("wtf", evt);
-            });
+                navigator.serviceWorker.ready.then(function (evt) {
+                    console.log("wtf", evt);
+                });
 
-            registration.onstatechange = function (evt) {
-                if (evt === "active") {
-                    serviceWorker = registration.active;
+                registration.onstatechange = function (evt) {
+                    if (evt === "active") {
+                        serviceWorker = registration.active;
+                    }
+
+                    if (evt === "waiting") {
+                        serviceWorker = registration.waiting;
+                    }
+
+                    if (evt === "installing") {
+                        serviceWorker = registration.installing;
+                    }
                 }
-                if (evt === "waiting") {
-                    serviceWorker = registration.waiting;
-                }
-                if (evt === "installing") {
-                    serviceWorker = registration.installing;
-                }
-            }
         });
     }
 }

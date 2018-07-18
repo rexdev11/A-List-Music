@@ -12,38 +12,55 @@ import (
 	"math/rand"
 	"strconv"
 	"time"
+	"strings"
+	"github.com/tensoflow/tensorflow/tensorflow/go"
 )
 
-const ServerHost = string("localhost:14591")
+// Main Server Settings
+var Host_Data = func() server.HostingInfo {
+	const Host = string("localhost")
+	const Port = 8080
+	const Protocol = "https"
 
-type MainOptions struct {
-	setUUID string
-	consoleCh chan string
+	return server.HostingInfo{
+		Paths: server.HostPaths{
+			SocketMainRoomName: ":Main",
+			Path:               string(Host + ":" + strconv.Itoa(Port)),
+			Host:               Host,
+			Protocol:           Protocol,
+			URI:                Protocol + "://" + Host + ":" + strconv.Itoa(Port),
+			Port:               Port,
+		},
+	}
+}()
+
+type ServerOptions struct {
+	serverRndUUID 	string
+	consoleCh 		chan string
 }
 
 var consoleCh = make(chan string)
 
-func main() {
+var rdmUUID = func() string {
+	startupUUIDNum := rand.Float64()
+	timestamp := time.Now()
+	return strings.Trim(strconv.FormatFloat(startupUUIDNum, 'f', 25, 64) + timestamp.String(), " ")
+}()
 
+func main() {
 	go chConsole()
 	go Nexus()
 
-	startupUUIDNum := rand.Float64()
-	timestamp := time.Now()
-	startupUUID := strconv.FormatFloat(startupUUIDNum, 'f', 25, 64) + timestamp.String()
-	fmt.Println(startupUUID)
+	fmt.Println(Host_Data)
 
-	options := MainOptions{
-		setUUID: startupUUID,
-		consoleCh: consoleCh,
+	options := ServerOptions{
+		serverRndUUID: rdmUUID,
+		consoleCh:     consoleCh,
 	}
 
-	// Nothing should execute past this. //
+	// Nothing will execute past StartServer.
+	// (as long as the server loop doesn't bork...)
 	StartServer(options)
-}
-
-func goC(f *interface{}){
-	chConsole()
 }
 
 func chConsole() {
@@ -52,32 +69,19 @@ func chConsole() {
 	}
 }
 
-func getHostData() server.HostingInfo {
-	hostPaths := server.HostingInfo{
-		Paths: server.HostPaths{
-			Name:     "MainServer",
-			Path:     "localhost:12121",
-			Host:     "localhost",
-			Protocol: "https",
-			URI:      "https://localhost:12121",
-			Port:     134545,
-		},
-	}
-	return hostPaths
-}
-
-func StartServer(options MainOptions) {
+func StartServer(options ServerOptions) {
 	fmt.Println("starting Server")
-	serverOptions := server.ServerOptions{
-		HostingData:    getHostData(),
-		ServerRoomName: options.setUUID,
+	serverOptions := server.ServerOptions {
+		HostingData:    Host_Data,
+		ServerRoomName: options.serverRndUUID,
 		ConsoleCh:      consoleCh,
 	}
+
 	serv := server.BuildServer(serverOptions)
 	serv.Logger().Debug("on connection")
 
 	err := serv.Run(iris.TLS(
-		ServerHost,
+		Host_Data.Paths.Path,
 		"./alist.cert",
 		"./alist.key",
 		),
@@ -89,25 +93,26 @@ func StartServer(options MainOptions) {
 			FireMethodNotAllowed:              false,
 			DisableBodyConsumptionOnUnmarshal: false,
 			DisableAutoFireStatusCode:         false,
-			EnableOptimizations: 				true,
+			EnableOptimizations:				true,
 			TimeFormat:                        "Mon, 02 Jan 2006 15:04:05 GMT",
 			Charset:                           "UTF-8",
 	}))
 
 	if err != nil {
+
 		//println(err)
 		utilities.ErrorHandler(err)
+
 	}
-	fmt.Println("starting server on ", ServerHost)
-	target, _ := url.Parse("http://localhost:80")
-	host.NewProxy(ServerHost, target).ListenAndServe()
+	fmt.Println("starting server on ", Host_Data.Paths.Host)
+	target, _ := url.Parse("localhost:80")
+	host.NewProxy(Host_Data.Paths.URI, target).ListenAndServe()
 }
 
 // This will coordinate the different modules into routines.
 func Nexus() {
 
 	for job := range store.Client().Jobs {
-
 		fmt.Printf("%s", job)
 	}
 
@@ -118,4 +123,5 @@ func Nexus() {
 	for transcodes := range transcoder.Client().Jobs {
 		fmt.Println(transcodes)
 	}
+
 }

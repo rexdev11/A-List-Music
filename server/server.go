@@ -17,8 +17,8 @@ import (
 var MainServerRoom string
 var fileUploadedChan chan utilities.Action
 var consoleCh chan string
-var Client = func() AListServerClient {
-	return AListServerClient{
+var ClieSnt = func() AListServerClient {
+	return AListServerClient {
 		FileUploaded: fileUploadedChan,
 	}
 }
@@ -32,12 +32,12 @@ type AListServerClient struct {
 }
 
 type HostPaths struct {
-	Name     string
-	Path     string
-	Host     string
-	Protocol string
-	URI      string
-	Port     int
+	SocketMainRoomName string
+	Path               string
+	Host               string
+	Protocol           string
+	URI                string
+	Port               int
 }
 type HostingInfo struct {
 	Paths HostPaths
@@ -58,14 +58,18 @@ var body string
 
 func BuildServer(options ServerOptions) (server *iris.Application) {
 	consoleCh = options.ConsoleCh
-	app := iris.New()
+	app := iris.Default()
 
 	MainServerRoom = options.ServerRoomName + ":Main"
 
 	app.RegisterView(iris.HTML("./views", ".html"))
 
 	app.Get("/", func(ctx iris.Context) {
-
+		consoleCh <- "foo"
+		res := ctx.ResponseWriter()
+		origin := res.Header().Get("origin")
+		consoleCh <- string("I ma the 70 origin" + origin)
+		res.Push(origin, nil)
 		data := SiteData{options.HostingData, options.ServerRoomName}
 		ctx.ResponseWriter()
 		ctx.ResetResponseWriter(ctx.ResponseWriter())
@@ -82,6 +86,7 @@ func BuildServer(options ServerOptions) (server *iris.Application) {
 		err = tmplt.Execute(ctx.ResponseWriter(), template.HTML(jsonData))
 		utilities.ErrorHandler(err)
 
+		// Respond
 		ctx.WriteString(body)
 		ctx.ViewLayout(body)
 	})
@@ -123,7 +128,7 @@ func BuildServer(options ServerOptions) (server *iris.Application) {
 
 	options.ConsoleCh <- "Sockets Initializing"
 
-	app.StaticWeb("/js/", path.Join(utilities.CWD(), "/web-_src/js/") )
+	app.StaticWeb("/js/", path.Join(utilities.CWD(), "/web-src/js/") )
 
 	mvc.Configure(app.Party("/websocket"), configureMVC)
 
@@ -138,8 +143,8 @@ func configureMVC(m *mvc.Application) {
 		},
 		IDGenerator: func(ctx context.Context) string {
 			var count int
-			var name= "ClientID" + string(count+1)
-			consoleCh <- "Client Name"
+			var name = "ClientID" + string(count+1)
+			consoleCh <- "Client SocketMainRoomName"
 			consoleCh <- name
 			consoleCh <- ctx.String()
 			return name
@@ -185,7 +190,7 @@ func (c *websocketController) update() {
 func (c *websocketController) Get( startUUID string /* websocket.Connection could be lived here as well, it doesn't matter */ ) {
 	c.Conn.OnLeave(c.onLeave)
 	c.Conn.On("visit", c.update)
-	//c.Conn.Wait()
+	c.Conn.Wait()
 
 	fmt.Println("Sockets Waiting")
 	var RoomName = roomPrefix + "file_upload"

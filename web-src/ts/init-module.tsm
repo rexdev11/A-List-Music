@@ -1,0 +1,23 @@
+import { setWS } from './wsocket';
+
+export = (...args) => {
+    return (function(args){
+        console.log(" running INIT");
+        
+        // Sockets
+        setWS();
+        
+        // Call Domain Context
+        
+        // hook
+        if (!!args && !!args.afterInitialized) {
+            afterInitialized(args.afterInitialized, args.context)
+        }
+        
+        // return Context
+    });
+}
+
+function afterInitialized(callback: (err, data) => void, context: {[key: string]: any}): void {
+    setWS()
+}

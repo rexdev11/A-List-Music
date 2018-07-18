@@ -1,31 +1,9 @@
-const dataStoreRef = document.getElementById("ProcessStore");
-const dataIn = JSON.parse(dataStoreRef.dataset.store);
-const socket = new Ws(`ws://${dataIn.HostingData.Path}/websocket`);
+const dataStoreRef = document.getElementsByTagName("body")[0];
+const dataIn = JSON.parse(dataStoreRef.dataset.go.in);
 
-console.log('Websocket', Ws);
 
 (function () {
-    console.log("DATA!!!", dataIn);
 
-    socket.OnConnect(function() {
-        socket.join(dataIn.sockets.MainServerRoom);
-        socket.Emit("visit");
-    });
-
-    socket.On("visit", function (newCount) {
-        console.log("visit websocket event with newCount of: ", newCount);
-        var text = "1 online visitor";
-
-        if (newCount > 1) {
-            text = newCount + " online visitors";
-        }
-
-        document.getElementById("online_visitors").innerHTML = text;
-    });
-
-    socket.OnDisconnect(function () {
-        document.getElementById("online_visitors").innerHTML = "you've been disconnected";
-    });
 })();
 
 console.log('Initializing UI, workers and cache');
