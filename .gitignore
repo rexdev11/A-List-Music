@@ -1,0 +1,12 @@
+.idea
+.DS_STORE
+node_modules
+dist
+local*
+sound-files\
+sound-files
+*.wav
+*.cert
+*.key
+*.csr
+serial.txt
