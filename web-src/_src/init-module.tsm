@@ -1,4 +1,4 @@
-import { setWS } from './wsocket';
+import { setWS } from './core/wsocket';
 
 export = (...args) => {
     return (function(args){

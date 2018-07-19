@@ -5,8 +5,8 @@ const CleanWebpackPlugin = require('clean-webpack-plugin');
 module.exports = {
     entry: {
         main: './_src/index.ts',
-        admin: './_src/ts/admin.ts',
-        index: './_src/ts/index.ts'
+        admin: './_src/admin/admin.ts',
+        index: './_src/index/index.ts'
     },
     module: {
         rules: [
